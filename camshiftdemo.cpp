@@ -13,14 +13,18 @@ using namespace std;
 
 // here put the number of the webcam stream to use 
 // with Linux, a webcam stream is a file beginning by /dev/video
-#define CAMERA 0
+#define CAMERA 1
 
 Mat image;
 
-bool backprojMode = false;
-bool selectObject = false;
-int trackObject = 0;
-bool showHist = true;
+bool backprojMode = false;   // pour voir en N&B, les pixels correspondant en blanc, le reste en noir
+bool selectObject = false;   // it's true when we are selecting a rectangle on the screen, and false when we release mouse
+int trackObject = 0;  // possible values: -1, 0, 1
+// -1 = rectangle selected by user, but camshift not initiated yet 
+// 0 = nothing to track (it is set to 0 when we push 'c', and the tracking is reset)
+// 1 = tracking en cours
+bool showHist = true;  // boolean whether we want to show histogram or not
+bool paused = false;   // whether the stream is paused or not
 Point origin;
 Rect selection;
 int vmin = 10, vmax = 256, smin = 30;
@@ -28,10 +32,7 @@ int vmin = 10, vmax = 256, smin = 30;
 static void onMouse( int event, int x, int y, int, void* );
 static void help();
 
-const char* keys =
-{
-    "{1|  | 0 | camera number}"
-};
+const char* keys = { "{1|  | 0 | camera number}" };
 
 int main( int argc, const char** argv )
 {
@@ -59,12 +60,12 @@ int main( int argc, const char** argv )
     namedWindow( "Histogram", 0 );
     namedWindow( "CamShift Demo", 0 );
     setMouseCallback( "CamShift Demo", onMouse, 0 );
+    // barres de défilement pour pouvoir régler les valeurs en live:
     createTrackbar( "Vmin", "CamShift Demo", &vmin, 256, 0 );
     createTrackbar( "Vmax", "CamShift Demo", &vmax, 256, 0 );
     createTrackbar( "Smin", "CamShift Demo", &smin, 256, 0 );
 
     Mat frame, hsv, hue, mask, hist, histimg = Mat::zeros(200, 320, CV_8UC3), backproj;
-    bool paused = false;
 
     for(;;)  // infinite loop
     {
@@ -75,21 +76,27 @@ int main( int argc, const char** argv )
                 break;
         }
 
-        frame.copyTo(image);
+        frame.copyTo(image);  // copy frame into image
 
         if( !paused )
         {
-            cvtColor(image, hsv, COLOR_BGR2HSV);  // we convert image to HSV
+            cvtColor(image, hsv, COLOR_BGR2HSV);  // we convert image from RGB to HSV, output in object hsv
 
-            if( trackObject )
+            if( trackObject != 0 )  // trackObject == 0 => nothing to track, so here there is something to track
             {
-                int _vmin = vmin, _vmax = vmax;
+                // NB: l'objet Scalar permet de stocker les valeurs d'un pixel
+                // c'est un vecteur à 3 ou 4 dimensions
 
-                inRange(hsv, Scalar(0, smin, MIN(_vmin,_vmax)), Scalar(180, 256, MAX(_vmin, _vmax)), mask);
+                inRange(hsv, Scalar(0, smin, MIN(vmin,vmax)), Scalar(180, 256, MAX(vmin, vmax)), mask);
                 // from hsv (arg1), we create a mask (arg4)
                 // arg2 and arg3 are the conditions to choose the mask
                 // arg2 -> minimum
                 // arg3 -> maximum
+
+                // the HSV mask is:
+                // 0 < H < 180
+                // smin < S < 256
+                // MIN(vmin,vmax) < V < MAX(vmin, vmax)
 
                 int ch[] = {0, 0};
                 // index pair -> le n° du channel de l'image d'entrée (&hsv)...
@@ -102,7 +109,7 @@ int main( int argc, const char** argv )
                 // the last arg is the number of index pairs in ch[]
                 // (arg2 and arg4 means that hsv and hue contains only 1 matrice)
 
-                if( trackObject < 0 )
+                if( trackObject == -1 )  // user just selected rectangle to track, so we must initiate tracking
                 {
                     // roi = Region Of Interest
 
@@ -118,7 +125,7 @@ int main( int argc, const char** argv )
                     trackWindow = selection;
                     trackObject = 1;
 
-                    histimg = Scalar::all(0);
+                    histimg = Scalar::all(0);  // reset the histogram (?)
                     int binW = histimg.cols / hsize;
                     Mat buf(1, hsize, CV_8UC3);
                     for( int i = 0; i < hsize; i++ )
@@ -138,6 +145,7 @@ int main( int argc, const char** argv )
                 backproj &= mask;
                 RotatedRect trackBox = CamShift(backproj, trackWindow,
                                     TermCriteria( CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 10, 1 ));
+
                 if( trackWindow.area() <= 1 )
                 {
                     int cols = backproj.cols, rows = backproj.rows, r = (MIN(cols, rows) + 5)/6;
@@ -151,10 +159,11 @@ int main( int argc, const char** argv )
                 ellipse( image, trackBox, Scalar(0,0,255), 3, CV_AA );
             }
         }
-        else if( trackObject < 0 )
+        else if( trackObject ==  -1 )
             paused = false;
 
-        if( selectObject && selection.width > 0 && selection.height > 0 )
+        // selectObject==true => the user is selecting the rectangle but has not released yet (?)
+        if( selectObject==true && selection.width > 0 && selection.height > 0 )
         {
             Mat roi(image, selection);  // we get the Region Of Interest
             bitwise_not(roi, roi);  // inverts every bit
@@ -164,31 +173,31 @@ int main( int argc, const char** argv )
         imshow( "CamShift Demo", image );
         imshow( "Histogram", histimg );
 
-        // we get key pressed
+        // we get the key pressed
         char c = (char)waitKey(10);
         if( c == 27 )  // 27 = ESCAPE
             break;
         switch(c)
         {
-        case 'b':
-            backprojMode = !backprojMode;
-            break;
-        case 'c':
-            trackObject = 0;
-            histimg = Scalar::all(0);
-            break;
-        case 'h':
-            showHist = !showHist;
-            if( !showHist )
-                destroyWindow( "Histogram" );
-            else
-                namedWindow( "Histogram", 1 );
-            break;
-        case 'p':
-            paused = !paused;
-            break;
-        default:
-            ;
+            case 'b':   // pour le masque en noir et blanc
+                backprojMode = !backprojMode;
+                break;
+            case 't':   // to reset tracking
+                trackObject = 0;
+                histimg = Scalar::all(0);
+                break;
+            case 'h':   // to show histogram
+                showHist = !showHist;
+                if( !showHist )
+                    destroyWindow( "Histogram" );
+                else
+                    namedWindow( "Histogram", 1 );
+                break;
+            case 'p':
+                paused = !paused;
+                break;
+            default:
+                break;
         }
     }
 
