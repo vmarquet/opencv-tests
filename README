@@ -1,4 +1,4 @@
-Ces tests d'OpenCV utilisent l'objet IplImage pour stocker les images, car c'est cet objet qui est déjà utilisé dans la version d'OpenCV embarquée sur le drône Aquatis.
+Ces tests d'OpenCV utilisent (ou devraient utiliser) l'objet IplImage pour stocker les images, car c'est cet objet qui est déjà utilisé dans la version d'OpenCV embarquée sur le drône Aquatis.
 
 Il ne faut donc pas utiliser l'objet Mat pour stocker les images.
 
