@@ -13,7 +13,7 @@ using namespace std;
 
 // here put the number of the webcam stream to use 
 // using Linux, a webcam stream is a file beginning by /dev/video
-#define CAMERA 0
+#define CAMERA 1
 
 typedef enum tracking {
     NONE,  //  nothing to track (it is set to 0 when we push 'c', and the tracking is reset)
@@ -21,7 +21,7 @@ typedef enum tracking {
     IN_PROGRESS  // tracking in progress
 } tracking;
 
-bool maskMode = false;      // to visualize the mask
+bool backProjectionMode = false;      // to visualize the Back Projection
 bool selectingRect = false;   // it's true when we are selecting a rectangle on the screen, and false when we release mouse
 tracking trackingMode = NONE;  // see tracking enum
 bool showHist = true;  // boolean whether we want to show histogram or not
@@ -62,7 +62,9 @@ int main( int argc, const char** argv )
     }
 
     namedWindow( "Histogram", 0 );
-    namedWindow( "CamShift Demo", 0 );
+    namedWindow( "CamShift Demo", CV_WINDOW_AUTOSIZE );
+    cvMoveWindow("Histogram", 0, 30);
+    cvMoveWindow("CamShift Demo", 350, 30);
     setMouseCallback( "CamShift Demo", onMouse, 0 );
     // barres de défilement pour pouvoir régler les valeurs en live:
     createTrackbar( "Vmin", "CamShift Demo", &vmin, 256, 0 );
@@ -120,8 +122,9 @@ int main( int argc, const char** argv )
                 {
                     // roi = Region Of Interest
 
-                    // we get a matrice containing only the rectangle selected by user with mouse 
-                    Mat roi(hue, selection), maskroi(mask, selection);
+                    // we get two matrix containing only the rectangle selected by user with mouse 
+                    Mat roi(hue, selection);
+                    Mat maskroi(mask, selection);
 
                     // we compute the histogram (filled with H (hue) values)
                     calcHist(&roi, 1, 0, maskroi, hist, 1, &numberColsHisto, &phranges);
@@ -142,10 +145,12 @@ int main( int argc, const char** argv )
                     Mat buf(1, numberColsHisto, CV_8UC3);
                     // CV_8UC3 = 8 bit, unsigned char, 3 channels
 
+                    // we compute colors for the histogram (?)
                     for( int i = 0; i < numberColsHisto; i++ )
                         buf.at<Vec3b>(i) = Vec3b(saturate_cast<uchar>(i*180./numberColsHisto), 255, 255);
                     cvtColor(buf, buf, CV_HSV2BGR);
 
+                    // we draw the histogram
                     for( int i = 0; i < numberColsHisto; i++ )
                     {
                         int val = saturate_cast<int>(hist.at<float>(i)*histimg.rows/255);
@@ -156,21 +161,43 @@ int main( int argc, const char** argv )
                 }
 
                 calcBackProject(&hue, 1, 0, hist, backproj, &phranges);
-                backproj &= mask;
+                // hue is source image (containing only H value from HSV format),
+                // hist is histogram and backproj is output image
+
+                // what is Back Projection:
+                // - Back Projection is a way of recording how well the pixels of a given
+                //   image fit the distribution of pixels in a histogram model.
+                // - how it is used:
+                //   1) compute histogram of a pattern (example: skin color)
+                //   2) use histogram to find this pattern in an image
+                // SOURCE: http://docs.opencv.org/doc/tutorials/imgproc/histograms/back_projection/back_projection.html
+
+                backproj = backproj & mask; // '&' means bitwise AND assignment (logical AND: backproj = backproj AND mask)
+                // reminder: - mask is created from original webcam picture with HSV values,
+                //             and depends on parameters but not on what is tracked
+                //           - backproj depends on the Hue value of what is tracked
+
                 RotatedRect trackBox = CamShift(backproj, trackWindow,
                                     TermCriteria( CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 10, 1 ));
+                // probImage –> Back projection of the object histogram
+                // trackWindow -> initial search window
+                // arg3 -> Stop criteria for the underlying meanShift()
 
-                if( trackWindow.area() <= 1 )
+                // CamShift returns the object position, size, and orientation
+                // next position of tracking window can be obtained with RotatedRect::boundingRect()
+
+                if( trackWindow.area() <= 1 )  // ?   to update trackWindow ?
                 {
-                    int cols = backproj.cols, rows = backproj.rows, r = (MIN(cols, rows) + 5)/6;
-                    trackWindow = Rect(trackWindow.x - r, trackWindow.y - r,
-                                       trackWindow.x + r, trackWindow.y + r) &
-                                  Rect(0, 0, cols, rows);
+                    int cols = backproj.cols, rows = backproj.rows;
+                    int r = (MIN(cols, rows) + 5)/6;
+                    trackWindow = Rect(trackWindow.x - r, trackWindow.y - r, trackWindow.x + r, trackWindow.y + r)
+                                  & Rect(0, 0, cols, rows);
                 }
 
-                if( maskMode )  // if we want to display the mask instead of webcam stream
+                if( backProjectionMode )  // if we want to display the Back Projection instead of webcam stream
                     cvtColor( backproj, image, COLOR_GRAY2BGR );
                     // we convert backproj to RGB format, and we put the result in image, to be displayed
+                    // the lighter the pixel is, the more he match the tracked values
 
                 ellipse( image, trackBox, Scalar(0,0,255), 3, CV_AA ); // we draw the ellipse on image
             }
@@ -197,7 +224,7 @@ int main( int argc, const char** argv )
         switch(c)
         {
             case 'm':   // pour le masque en noir et blanc
-                maskMode = !maskMode;
+                backProjectionMode = !backProjectionMode;
                 break;
             case 't':   // to reset tracking
                 trackingMode = NONE;
