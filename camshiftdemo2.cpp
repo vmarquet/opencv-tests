@@ -1,5 +1,7 @@
-// g++ -ggdb `pkg-config --cflags opencv` camshiftdemo.cpp `pkg-config --libs opencv` -o camshiftdemo
-// ./camshiftdemo
+// g++ -ggdb `pkg-config --cflags opencv` camshiftdemo2.cpp `pkg-config --libs opencv` -o camshiftdemo2
+// ./camshiftdemo2
+
+// same program than camshiftdemo.cpp, but with more windows to see the streams in parallel
 
 #include "opencv2/video/tracking.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -21,7 +23,6 @@ typedef enum tracking {
     IN_PROGRESS  // tracking in progress
 } tracking;
 
-bool backProjectionMode = false;      // to visualize the Back Projection
 bool selectingRect = false;   // it's true when we are selecting a rectangle on the screen, and false when we release mouse
 tracking trackingMode = NONE;  // see tracking enum
 bool showHist = true;  // boolean whether we want to show histogram or not
@@ -33,7 +34,7 @@ int vmin = 10, vmax = 256, smin = 30;
 static void onMouse( int event, int x, int y, int, void* );
 static void help();
 
-Mat image;
+Mat image, imageBackProjection;
 const char* keys = { "{1|  | 0 | camera number}" };
 
 int main( int argc, const char** argv )
@@ -61,10 +62,18 @@ int main( int argc, const char** argv )
         return -1;
     }
 
+    // we create the windows to display the streams
     namedWindow( "Histogram", 0 );
     namedWindow( "CamShift Demo", CV_WINDOW_AUTOSIZE );
-    cvMoveWindow("Histogram", 0, 30);
-    cvMoveWindow("CamShift Demo", 350, 30);
+    namedWindow( "Mask", CV_WINDOW_AUTOSIZE );
+    namedWindow( "Back Projection", CV_WINDOW_AUTOSIZE );
+
+    // we set initial positions of the windows
+    cvMoveWindow("CamShift Demo", 0, 30);
+    cvMoveWindow("Histogram", 300, 30);
+    cvMoveWindow("Back Projection", 600, 30);
+    cvMoveWindow("Mask", 600, 500);
+
     setMouseCallback( "CamShift Demo", onMouse, 0 );
     // barres de défilement pour pouvoir régler les valeurs en live:
     createTrackbar( "Vmin", "CamShift Demo", &vmin, 256, 0 );
@@ -103,6 +112,8 @@ int main( int argc, const char** argv )
                 // 0 < H < 180
                 // smin < S < 256
                 // MIN(vmin,vmax) < V < MAX(vmin, vmax)
+
+                imshow( "Mask", mask );
 
                 int ch[] = {0, 0};
                 // index pair -> le n° du channel de l'image d'entrée (&hsv)...
@@ -194,12 +205,14 @@ int main( int argc, const char** argv )
                                   & Rect(0, 0, cols, rows);
                 }
 
-                if( backProjectionMode )  // if we want to display the Back Projection instead of webcam stream
-                    cvtColor( backproj, image, COLOR_GRAY2BGR );
-                    // we convert backproj to RGB format, and we put the result in image, to be displayed
-                    // the lighter the pixel is, the more he match the tracked values
+                cvtColor( backproj, imageBackProjection, COLOR_GRAY2BGR );
+                // we convert backproj to RGB format, and we put the result in imageBackProjection, to be displayed
+                // the lighter the pixel is, the more he match the tracked values
 
                 ellipse( image, trackBox, Scalar(0,0,255), 3, CV_AA ); // we draw the ellipse on image
+                ellipse( imageBackProjection, trackBox, Scalar(0,0,255), 3, CV_AA ); // we draw the ellipse on imageBackProjection
+
+                imshow( "Back Projection", imageBackProjection );
             }
         }
         else if( trackingMode ==  INITIATING )  // if it's paused while initiating
@@ -223,9 +236,6 @@ int main( int argc, const char** argv )
             break;
         switch(c)
         {
-            case 'm':   // pour le masque en noir et blanc
-                backProjectionMode = !backProjectionMode;
-                break;
             case 't':   // to reset tracking
                 trackingMode = NONE;
                 histimg = Scalar::all(0);
@@ -286,7 +296,6 @@ static void help()
     cout << "\n\nHot keys: \n"
             "\t ESC - quit the program\n"
             "\t t - stop the tracking\n"
-            "\t m - switch to/from Back Projection view\n"
             "\t h - show/hide object histogram\n"
             "\t p - pause video\n"
             "To initialize tracking, select the object with mouse\n";
