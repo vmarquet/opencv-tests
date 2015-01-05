@@ -3,8 +3,8 @@
 // SOURCE: http://stackoverflow.com/questions/6022423/mjpeg-streaming-and-decoding
 
 #include <stdio.h>
-#include "highgui.h"
-#include "cv.h"
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
 
 
 int main( int argc, char** argv){

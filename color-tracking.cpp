@@ -8,9 +8,8 @@ La valeur (V de HSV) est volontairement ignorée, car on veut que ça ne dépend
 On calcule le barycentre des points qui ressemblent au pixel de référence, et on l'affiche avec un rond. 
 */
  
-#include "opencv/highgui.h"
-#include "opencv/cv.h"
- 
+#include <opencv/highgui.h>
+#include <opencv/cv.h>
 #include <iostream>
 #include <stdlib.h>
 #include <stdio.h>

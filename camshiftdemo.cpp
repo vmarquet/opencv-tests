@@ -1,10 +1,9 @@
 // g++ -ggdb `pkg-config --cflags opencv` camshiftdemo.cpp `pkg-config --libs opencv` -o camshiftdemo
 // ./camshiftdemo
 
-#include "opencv2/video/tracking.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/highgui/highgui.hpp"
-
+#include <opencv2/video/tracking.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <iostream>
 #include <ctype.h>
 

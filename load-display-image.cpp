@@ -1,5 +1,5 @@
-// g++ load-display-image.cpp -o a -lopencv_core -lopencv_highgui -o load-display-image
-// ./load-display-image image.png
+// g++ `pkg-config --cflags --libs opencv` load-display-image.cpp -o load-display-image
+// ./load-display-image images/fruits.jpg
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
