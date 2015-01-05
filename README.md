@@ -12,7 +12,7 @@ Installation
 
 Compilation
 -----------
-Don't forget to link the OpenCV library: `pkg-config --cflags --libs opencv`.
+Don't forget to link the OpenCV library: `` `pkg-config --cflags --libs opencv` ``.
 
-Example: `g++ `pkg-config --cflags --libs opencv` test.c -o test`.
+Example: ``g++ `pkg-config --cflags --libs opencv` test.c -o test``.
 
