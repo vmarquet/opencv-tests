@@ -1,4 +1,4 @@
-// g++ -ggdb `pkg-config --cflags opencv` camshiftdemo2.cpp `pkg-config --libs opencv` -o camshiftdemo2
+// g++ -ggdb camshiftdemo2.cpp -o camshiftdemo2 `pkg-config --cflags --libs opencv`
 // ./camshiftdemo2
 
 // same program than camshiftdemo.cpp, but with more windows to see the streams in parallel

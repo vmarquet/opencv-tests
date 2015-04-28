@@ -1,4 +1,4 @@
-// g++ `pkg-config --cflags --libs opencv` load-display-image.cpp -o load-display-image
+// g++ load-display-image.cpp -o load-display-image `pkg-config --cflags --libs opencv`
 // ./load-display-image images/fruits.jpg
 
 #include <opencv2/core/core.hpp>

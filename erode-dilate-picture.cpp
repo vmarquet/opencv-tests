@@ -1,4 +1,4 @@
-// g++ -ggdb `pkg-config --cflags --libs opencv` erode-dilate-picture.cpp -o erode-dilate-picture
+// g++ -ggdb erode-dilate-picture.cpp -o erode-dilate-picture `pkg-config --cflags --libs opencv`
 // ./erode-dilate-picture images/fruits.jpg
 
 #include <opencv2/imgproc/imgproc.hpp>

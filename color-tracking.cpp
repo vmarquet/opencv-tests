@@ -1,4 +1,4 @@
-// g++ color-tracking.cpp -o monProg `pkg-config --cflags opencv` `pkg-config --libs opencv` -o color-tracking
+// g++ color-tracking.cpp -o color-tracking `pkg-config --cflags --libs opencv`
 // ./color-tracking
 
 /*

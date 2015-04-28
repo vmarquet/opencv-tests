@@ -1,4 +1,4 @@
-// g++ `pkg-config --cflags --libs opencv` k-mean.cpp -o k-mean -ggdb
+// g++ k-mean.cpp -o k-mean -ggdb `pkg-config --cflags --libs opencv`
 // ./k-mean
 
 // from http://stackoverflow.com/questions/9575652/opencv-using-k-means-to-posterize-an-image

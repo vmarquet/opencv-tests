@@ -1,4 +1,4 @@
-// gcc -ggdb `pkg-config --cflags opencv` test-webcam.c `pkg-config --libs opencv` -o test-webcam
+// gcc -ggdb test-webcam.c -o test-webcam `pkg-config --cflags --libs opencv`
 // ./test-webcam
 
 #include <stdlib.h>
